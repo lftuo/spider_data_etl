@@ -24,20 +24,25 @@ class UpdataModel(object):
             file = open(path,'r')
             while 1:
                 model = file.readline().strip('\n').strip()
-                sql = "select * from shouji_all_spider_data WHERE title LIKE '%%%%%s%%%%' OR model LIKE '%%%%%s%%%%'"%(model,model)
-                cur.execute(sql)
-                res = cur.fetchall()
-                data.write(str(len(res)))
-                data.write('\n')
-                if len(res) > 0:
-                    for line in res:
+                sql_title = "select * from shouji_all_spider_data WHERE title LIKE '%%%%%s%%%%'"%model
+                sql_model = "select * from shouji_all_spider_data WHERE model LIKE '%%%%%s%%%%'"%model
+                cur.execute(sql_title)
+                res_title = cur.fetchall()
+                cur.execute(sql_model)
+                res_model = cur.fetchall()
+                print model,len(res_title),len(res_model)
+                # title字段可以找到，model字段找不到，则更新model字段为modelc
+                if len(res_title) > 0 and len(res_model) == 0:
+                    data.write(model + ' ------ need update')
+                    data.write('\n')
+                    for line in res_title:
                         content = line[0]+','+line[1]+','+line[2]+','+line[18]+','+line[20]+','+line[21]
-                        print content
                         data.write(content)
                         data.write('\n')
-                else:
+                elif len(res_title) == 0 and len(res_model) == 0:
                     data.write(model + '---------- is not found')
                     data.write('\n')
+
                 if not model:
                     break
                 pass
