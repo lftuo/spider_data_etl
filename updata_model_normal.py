@@ -5,7 +5,6 @@
 # @File : updata_model_normal.py
 # @Software : IntelliJ IDEA
 # 更新爬虫数据表单shouji_all_spider_data中model字段
-import logging
 
 from util import Util
 import sys
@@ -15,8 +14,11 @@ sys.setdefaultencoding('utf-8')
 
 class UpdateModel(object):
 
+    """
+    查找手机型号与品牌前1000条数据
+    :param table_name 需要更新的爬虫表单
+    """
     def __update_data__(self,table_name):
-
         # 读取models手机型号表单
         conn = Util().get_db_conn()
         cur = conn.cursor()
@@ -29,8 +31,16 @@ class UpdateModel(object):
             cnt = line[2]
             brand_chinese = line[3]
             print model,brand,cnt,brand_chinese
+            # 更新爬虫表单
             update.__update_model_recursion__(model,brand_chinese,table_name)
 
+    """
+    更新爬虫数据中的手机型号
+    :param model:要更新的手机型号
+    :param brand:要更新手机型号的所属品牌拼音
+    :param brand_chinese:要更新手机型号的所属中文名称
+    :param table_name:要更新的爬虫表单
+    """
     def __update_model_recursion__(self,model,brand_chinese,table_name):
         conn = Util().get_db_conn()
         cur = conn.cursor()
@@ -193,6 +203,12 @@ class UpdateModel(object):
                 data.write(model + '---------- is not found')
                 data.write('\n')
 
+    """
+    获取查询爬虫数据表的结果，根据手机型号的中文品牌like查询爬虫数据中的title，如果为该品牌数据，则再查找手机型号
+    :param conn：存储爬虫数据的数据库连接串
+    :param brand_chinese：手机型号的中文品牌
+    :param model：手机型号
+    """
     def get_result(self,conn,brand_chinese,model):
         cur = conn.cursor()
         sql = "select url from shouji_all_spider_data WHERE title LIKE '%%%%%s%%%%' AND (title LIKE '%%%%%s%%%%' OR model LIKE '%%%%%s%%%%')"%(brand_chinese,model,model)
@@ -204,4 +220,5 @@ class UpdateModel(object):
 
 if __name__ == '__main__':
     update = UpdateModel()
+    # 更新爬虫表单中的手机型号，传入参数为爬虫数据表名
     update.__update_data__(table_name='shouji_all_spider_data')

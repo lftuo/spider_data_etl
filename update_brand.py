@@ -7,7 +7,10 @@
 # 更新品牌信息
 from util import Util
 
-
+"""
+更新手机品牌方法：
+:param table_name:爬虫数据表，需存在brand字段，如不存在，请添加
+"""
 def __update__(table_name):
     conn = Util().get_db_conn()
     cur = conn.cursor()
