@@ -5,6 +5,7 @@
 # @File : updata_model_normal.py
 # @Software : IntelliJ IDEA
 # 更新爬虫数据表单shouji_all_spider_data中model字段
+import logging
 import os
 
 from util import Util
@@ -32,14 +33,19 @@ class UpdateModel(object):
         sql = "SELECT * FROM %s WHERE brand != 'NULL' AND brand_chinese IS NOT NULL ORDER BY cnt DESC LIMIT 1000"%brand_table
         cur.execute(sql)
         res = cur.fetchall()
-        for line in res:
-            model = line[0]
-            brand = line[1]
-            cnt = line[2]
-            brand_chinese = line[3]
-            print model,brand,cnt,brand_chinese
-            # 更新爬虫表单
-            update.__update_model__(model,brand_chinese,spider_table)
+        try:
+            for line in res:
+                model = line[0]
+                brand = line[1]
+                cnt = line[2]
+                brand_chinese = line[3]
+                print model,brand,cnt,brand_chinese
+                # 更新爬虫表单
+                update.__update_model__(model,brand_chinese,spider_table)
+        except Exception,e:
+            logging.exception(e)
+        finally:
+            conn.close()
 
     """
     更新爬虫数据中的手机型号
@@ -50,60 +56,73 @@ class UpdateModel(object):
     """
     def __update_model__(self,model,brand_chinese,table_name):
         conn = Util().get_db_conn()
-        cur = conn.cursor()
-        # 按照brand查找数据
-        res_title = update.get_result(conn,brand_chinese,model,table_name)[0]
-        res_model = update.get_result(conn,brand_chinese,model,table_name)[1]
-        # 标题中存在，model字段不存在，则更新model字段为当前model
-        if len(res_title) > 0 and len(res_model) == 0 :
-            for line in res_title:
-                url = line[0]
-                update_sql = "update %s set model = '%s' WHERE url = '%s'"%(table_name,model,url)
-                cur.execute(update_sql)
-                conn.commit()
-                print 'update ----- ',model,brand_chinese,url
-        # 如果找不到，则区别对待
-        elif len(res_title) == 0 and len(res_model) == 0:
-            # 去掉HUAWEI开头查找华为的手机型号
-            data = open("conf/data_notfound.txt",'a')
-            new_model = ""
-            if model.startswith('HUAWEI '):
-                new_model = model.replace('HUAWEI ','').strip()
-            elif model.startswith('SM-'):
-                # 去掉SM-开头查找三星的手机型号
-                new_model = model.replace('SM-','').strip()
-            elif model.startswith('GT-'):
-                # 去掉GT-开头查找三星的手机型号
-                new_model = model.replace('GT-','').strip()
-            elif model.startswith('Coolpad '):
-                # Coolpad 开头查找酷派的手机型号
-                new_model = model.replace('Coolpad ','').strip()
-            elif model.startswith('Lenovo '):
-                # Lenovo 开头查找联想的手机型号
-                new_model = model.replace('Lenovo ','').strip()
-            elif model.startswith('HTC '):
-                # HTC 开头查找HTC的手机型号
-                new_model = model.replace('HTC ','').strip()
-            elif model.startswith('ZTE '):
-                # ZTE 开头查找中兴的手机型号
-                new_model = model.replace('ZTE ','').strip()
-            elif model.startswith('koobee '):
-                # koobee 开头查找酷比的手机型号
-                new_model = model.replace('koobee ','').strip()
-            elif model.startswith('vivo '):
-                # vivo 开头查找vivo的手机型号
-                new_model = model.replace('vivo ','').strip()
-            elif model.startswith('ZUK '):
-                # ZUK 开头查找ZUK的手机型号
-                new_model = model.replace('ZUK ','').strip()
-            else:
-                data.write(model + '---------- is not found')
-                data.write('\n')
+        try:
+            cur = conn.cursor()
+            # 按照brand查找数据
+            res_title = update.get_result(conn,brand_chinese,model,table_name)[0]
+            res_model = update.get_result(conn,brand_chinese,model,table_name)[1]
+            # 标题中存在，model字段不存在，则更新model字段为当前model
+            if len(res_title) > 0 and len(res_model) == 0 :
+                for line in res_title:
+                    url = line[0]
+                    update_sql = "update %s set model = '%s' WHERE url = '%s'"%(table_name,model,url)
+                    cur.execute(update_sql)
+                    conn.commit()
+                    print 'update ----- ',model,brand_chinese,url
+            # 如果找不到，则区别对待
+            elif len(res_title) == 0 and len(res_model) == 0:
+                # 去掉HUAWEI开头查找华为的手机型号
+                data = open("conf/data_notfound.txt",'a')
+                new_model = ""
+                if model.startswith('HUAWEI '):
+                    new_model = model.replace('HUAWEI ','').strip()
+                elif model.startswith('SM-'):
+                    # 去掉SM-开头查找三星的手机型号
+                    new_model = model.replace('SM-','').strip()
+                elif model.startswith('GT-'):
+                    # 去掉GT-开头查找三星的手机型号
+                    new_model = model.replace('GT-','').strip()
+                elif model.startswith('Coolpad '):
+                    # Coolpad 开头查找酷派的手机型号
+                    new_model = model.replace('Coolpad ','').strip()
+                elif model.startswith('Lenovo '):
+                    # Lenovo 开头查找联想的手机型号
+                    new_model = model.replace('Lenovo ','').strip()
+                elif model.startswith('HTC '):
+                    # HTC 开头查找HTC的手机型号
+                    new_model = model.replace('HTC ','').strip()
+                elif model.startswith('ZTE '):
+                    # ZTE 开头查找中兴的手机型号
+                    new_model = model.replace('ZTE ','').strip()
+                elif model.startswith('koobee '):
+                    # koobee 开头查找酷比的手机型号
+                    new_model = model.replace('koobee ','').strip()
+                elif model.startswith('vivo '):
+                    # vivo 开头查找vivo的手机型号
+                    new_model = model.replace('vivo ','').strip()
+                elif model.startswith('ZUK '):
+                    # ZUK 开头查找ZUK的手机型号
+                    new_model = model.replace('ZUK ','').strip()
+                else:
+                    data.write(model + '---------- is not found')
+                    data.write('\n')
 
-            # 如果切割后的model存在，则按切割后的model加上品牌重新查找
-            if new_model != "":
-                update.__update_recursion__(conn,model,brand_chinese,new_model,table_name)
+                # 如果切割后的model存在，则按切割后的model加上品牌重新查找
+                if new_model != "":
+                    update.__update_recursion__(conn,model,brand_chinese,new_model,table_name)
+        except Exception,e:
+            logging.exception(e)
+        finally:
+            conn.close()
 
+    """
+    更新爬虫数据表
+    :param conn:数据库连接串
+    :param model:手机型号
+    :param brand_chinese:手机型号品牌的中文描述
+    :param new_model:去掉前缀的手机型号：如HUIWEI XXXXXXXX，去掉HUAWEI，XXXXXXXX作为新的手机型号
+    :param table_name:爬虫数据表名
+    """
     def __update_recursion__(self, conn,model, brand_chinese, new_model,table_name):
         data = open("conf/data_notfound.txt",'a')
         cur = conn.cursor()
