@@ -16,12 +16,14 @@ sys.setdefaultencoding('utf-8')
 
 class UpdateModel(object):
 
-    """
-    查找手机型号与品牌前1000条数据
-    :param brand_table 手机型号表单
-    :param spider_table 需要更新的爬虫表单
-    """
-    def __update_data__(self,brand_table,spider_table):
+    def __update_data__(self,top_limit,brand_table,spider_table):
+        '''
+        查找手机型号与品牌前1000条数据
+        :param top_limit：品牌条数限制，SQL中查询型号与品牌表中的top多少条
+        :param brand_table: 手机型号表单
+        :param spider_table: 需要更新的爬虫表单
+        :return:
+        '''
 
         # 存放检查手机模型不存在的文件conf/data_notfound.txt，每次检查手机模型，重新生成
         if os.path.exists("conf/data_notfound.txt"):
@@ -30,7 +32,7 @@ class UpdateModel(object):
         # 读取models手机型号表单
         conn = Util().get_db_conn()
         cur = conn.cursor()
-        sql = "SELECT * FROM %s WHERE brand != 'NULL' AND brand_chinese IS NOT NULL ORDER BY cnt DESC LIMIT 1000"%brand_table
+        sql = "SELECT * FROM %s WHERE brand != 'NULL' AND brand_chinese IS NOT NULL ORDER BY cnt DESC LIMIT %s"%(brand_table,top_limit)
         cur.execute(sql)
         res = cur.fetchall()
         try:
@@ -47,14 +49,15 @@ class UpdateModel(object):
         finally:
             conn.close()
 
-    """
-    更新爬虫数据中的手机型号
-    :param model:要更新的手机型号
-    :param brand:要更新手机型号的所属品牌拼音
-    :param brand_chinese:要更新手机型号的所属中文名称
-    :param table_name:要更新的爬虫表单
-    """
     def __update_model__(self,model,brand_chinese,table_name):
+        '''
+        更新爬虫数据中的手机型号
+        :param model: 要更新的手机型号
+        :param brand_chinese: 要更新手机型号的所属中文名称
+        :param table_name: 爬虫数据表单
+        :return:
+        '''
+
         conn = Util().get_db_conn()
         try:
             cur = conn.cursor()
@@ -76,6 +79,9 @@ class UpdateModel(object):
                 new_model = ""
                 if model.startswith('HUAWEI '):
                     new_model = model.replace('HUAWEI ','').strip()
+                elif model.startswith('HONOR '):
+                    # 去掉HONOR 开头查找荣耀的手机型号
+                    new_model = model.replace('HONOR ','').strip()
                 elif model.startswith('SM-'):
                     # 去掉SM-开头查找三星的手机型号
                     new_model = model.replace('SM-','').strip()
@@ -100,9 +106,21 @@ class UpdateModel(object):
                 elif model.startswith('vivo '):
                     # vivo 开头查找vivo的手机型号
                     new_model = model.replace('vivo ','').strip()
+                elif model.startswith('OPPO '):
+                    # OPPO 开头查找OPPO的手机型号
+                    new_model = model.replace('OPPO ','').strip()
                 elif model.startswith('ZUK '):
                     # ZUK 开头查找ZUK的手机型号
                     new_model = model.replace('ZUK ','').strip()
+                elif model.startswith('Letv '):
+                    # Letv 开头查找乐视的手机型号
+                    new_model = model.replace('Letv ','').strip()
+                elif model.startswith('Le '):
+                    # Le 开头查找乐视的手机型号
+                    new_model = model.replace('Le ','').strip()
+                elif model.startswith('Hisense '):
+                    # Hisense 开头查找海信的手机型号
+                    new_model = model.replace('Hisense ','').strip()
                 else:
                     data.write(model + '---------- is not found')
                     data.write('\n')
@@ -115,15 +133,17 @@ class UpdateModel(object):
         finally:
             conn.close()
 
-    """
-    更新爬虫数据表
-    :param conn:数据库连接串
-    :param model:手机型号
-    :param brand_chinese:手机型号品牌的中文描述
-    :param new_model:去掉前缀的手机型号：如HUIWEI XXXXXXXX，去掉HUAWEI，XXXXXXXX作为新的手机型号
-    :param table_name:爬虫数据表名
-    """
     def __update_recursion__(self, conn,model, brand_chinese, new_model,table_name):
+        '''
+        更新爬虫数据表
+        :param conn: 数据库连接串
+        :param model: 手机型号
+        :param brand_chinese: 手机型号品牌的中文描述
+        :param new_model: 去掉前缀的手机型号：如HUIWEI XXXXXXXX，去掉HUAWEI，XXXXXXXX作为新的手机型号
+        :param table_name: 爬虫数据表名
+        :return:
+        '''
+
         data = open("conf/data_notfound.txt",'a')
         cur = conn.cursor()
         res_title = update.get_result(conn,brand_chinese,new_model,table_name)[0]
@@ -139,13 +159,16 @@ class UpdateModel(object):
             data.write(model + '---------- is not found')
             data.write('\n')
 
-    """
-    获取查询爬虫数据表的结果，根据手机型号的中文品牌like查询爬虫数据中的title，如果为该品牌数据，则再查找手机型号
-    :param conn：存储爬虫数据的数据库连接串
-    :param brand_chinese：手机型号的中文品牌
-    :param model：手机型号
-    """
     def get_result(self,conn,brand_chinese,model,table_name):
+        '''
+        获取查询爬虫数据表的结果，根据手机型号的中文品牌like查询爬虫数据中的title，如果为该品牌数据，则再查找手机型号
+        :param conn: 存储爬虫数据的数据库连接串
+        :param brand_chinese: 手机型号的中文品牌
+        :param model: 手机型号
+        :param table_name: 爬虫数据表名
+        :return:
+        '''
+
         cur = conn.cursor()
         # model本身是否存在该手机型号
         sql_title = "select url from %s WHERE title LIKE '%%%%%s%%%%' AND title LIKE '%%%%%s%%%%'"%(table_name,brand_chinese,model)
@@ -162,4 +185,4 @@ class UpdateModel(object):
 if __name__ == '__main__':
     update = UpdateModel()
     # 更新爬虫表单中的手机型号，传入参数为爬虫数据表名
-    update.__update_data__(brand_table='model_and_brand_top50_youxiao',spider_table='shouji_all_spider_data')
+    update.__update_data__(top_limit=10000,brand_table='model_and_brand',spider_table='shouji_all_spider_data')
